@@ -1,0 +1,342 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Blog API - INF222",
+    "description": "API RESTful pour la gestion d'un blog. Développée avec Node.js, Express et SQLite dans le cadre du Taf1 d'INF222 EC1.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "INF222 - EC1 Backend",
+      "email": "student@example.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Serveur local de développement"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Articles",
+      "description": "Gestion des articles du blog"
+    }
+  ],
+  "paths": {
+    "/api/articles": {
+      "get": {
+        "tags": ["Articles"],
+        "summary": "Récupérer tous les articles",
+        "description": "Retourne la liste complète des articles, avec filtres optionnels par catégorie, auteur ou date.",
+        "parameters": [
+          {
+            "name": "categorie",
+            "in": "query",
+            "description": "Filtrer par catégorie",
+            "required": false,
+            "schema": { "type": "string", "example": "Tech" }
+          },
+          {
+            "name": "auteur",
+            "in": "query",
+            "description": "Filtrer par auteur",
+            "required": false,
+            "schema": { "type": "string", "example": "Charles" }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Filtrer par date (format YYYY-MM-DD)",
+            "required": false,
+            "schema": { "type": "string", "format": "date", "example": "2026-03-18" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Liste des articles récupérée avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "count": { "type": "integer", "example": 3 },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Article" } }
+                  }
+                }
+              }
+            }
+          },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "post": {
+        "tags": ["Articles"],
+        "summary": "Créer un nouvel article",
+        "description": "Crée un nouvel article et le stocke en base de données.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ArticleInput" },
+              "example": {
+                "titre": "Mon premier article",
+                "contenu": "Contenu de l'article...",
+                "auteur": "Jean Dupont",
+                "categorie": "Tech",
+                "tags": ["nodejs", "express"],
+                "date": "2026-03-23T10:00:00.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Article créé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Article créé avec succès." },
+                    "data": { "$ref": "#/components/schemas/Article" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/articles/search": {
+      "get": {
+        "tags": ["Articles"],
+        "summary": "Rechercher des articles",
+        "description": "Recherche des articles dont le titre, le contenu, l'auteur ou les tags contiennent le texte recherché.",
+        "parameters": [
+          {
+            "name": "query",
+            "in": "query",
+            "description": "Texte à rechercher",
+            "required": true,
+            "schema": { "type": "string", "example": "nodejs" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Résultats de la recherche",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "count": { "type": "integer" },
+                    "query": { "type": "string" },
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Article" } }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    },
+    "/api/articles/{id}": {
+      "get": {
+        "tags": ["Articles"],
+        "summary": "Récupérer un article par ID",
+        "parameters": [
+          { "$ref": "#/components/parameters/ArticleId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article trouvé",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "data": { "$ref": "#/components/schemas/Article" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "put": {
+        "tags": ["Articles"],
+        "summary": "Modifier un article",
+        "description": "Met à jour un ou plusieurs champs d'un article existant.",
+        "parameters": [
+          { "$ref": "#/components/parameters/ArticleId" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ArticleUpdate" },
+              "example": {
+                "titre": "Titre mis à jour",
+                "categorie": "Tech",
+                "tags": ["updated", "express"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Article mis à jour",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "data": { "$ref": "#/components/schemas/Article" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      },
+      "delete": {
+        "tags": ["Articles"],
+        "summary": "Supprimer un article",
+        "parameters": [
+          { "$ref": "#/components/parameters/ArticleId" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Article supprimé avec succès",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" },
+                    "message": { "type": "string" },
+                    "deletedId": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/ServerError" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Article": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "titre": { "type": "string", "example": "Introduction à Node.js" },
+          "contenu": { "type": "string", "example": "Node.js est un environnement d'exécution JavaScript..." },
+          "auteur": { "type": "string", "example": "Charles Njiosseu" },
+          "date": { "type": "string", "format": "date-time", "example": "2026-03-23T10:00:00.000Z" },
+          "categorie": { "type": "string", "example": "Tech" },
+          "tags": { "type": "array", "items": { "type": "string" }, "example": ["nodejs", "javascript"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ArticleInput": {
+        "type": "object",
+        "required": ["titre", "contenu", "auteur"],
+        "properties": {
+          "titre": { "type": "string", "maxLength": 255, "example": "Mon article" },
+          "contenu": { "type": "string", "example": "Contenu de l'article" },
+          "auteur": { "type": "string", "maxLength": 100, "example": "Jean Dupont" },
+          "categorie": { "type": "string", "default": "General", "example": "Tech" },
+          "tags": { "type": "array", "items": { "type": "string" }, "example": ["tag1", "tag2"] },
+          "date": { "type": "string", "format": "date-time" }
+        }
+      },
+      "ArticleUpdate": {
+        "type": "object",
+        "properties": {
+          "titre": { "type": "string", "maxLength": 255 },
+          "contenu": { "type": "string" },
+          "auteur": { "type": "string", "maxLength": 100 },
+          "categorie": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "parameters": {
+      "ArticleId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Identifiant unique de l'article",
+        "schema": { "type": "integer", "minimum": 1, "example": 1 }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Requête mal formée (400)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "error": { "type": "string", "example": "Bad Request" },
+                "messages": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Ressource introuvable (404)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "error": { "type": "string", "example": "Not Found" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Erreur interne du serveur (500)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "type": "object",
+              "properties": {
+                "success": { "type": "boolean", "example": false },
+                "error": { "type": "string", "example": "Erreur serveur" },
+                "message": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
